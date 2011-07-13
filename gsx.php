@@ -234,14 +234,15 @@ class GSX {
 	 *
 	 */
 	protected $gsxDetails = array (
-		'apiMode'			=> 'production',
-		'regionCode'		=> 'apac',
-		'userId'			=> '',
-		'password'			=> '',
-		'serviceAccountNo'	=> '',
-		'languageCode'		=> 'en',
-		'userTimeZone'		=> 'PDT',
-		'returnFormat'		=> 'php'
+		'apiMode'			=> 'production' ,
+		'regionCode'		=> 'apac' ,
+		'userId'			=> '' ,
+		'password'			=> '' ,
+		'serviceAccountNo'	=> '' ,
+		'languageCode'		=> 'en' ,
+		'userTimeZone'		=> 'PDT' ,
+		'returnFormat'		=> 'php' ,
+		'gsxWsdl'				=> ''
 	);
 	
 	/**
@@ -354,6 +355,8 @@ class GSX {
 		$this->gsxDetails['userTimeZone'] = ( empty ( $_gsxDetailsArray['userTimeZone'] ) ) ? 'PST' : $_gsxDetailsArray['userTimeZone'];
 		
 		$this->gsxDetails['returnFormat'] = $_gsxDetailsArray['returnFormat'];
+		echo $_gsxDetailsArray['wsdl'];
+		$this->gsxDetails['gsxWsdl'] = $_gsxDetailsArray['wsdl'];
 		
 		$this->authenticate();
 	}
@@ -449,7 +452,11 @@ class GSX {
 	protected function assign_wsdl ( ) {
 		$api_mode = ( $this->gsxDetails['apiMode'] == 'production' ) ? '' : $this->gsxDetails['regionCode'];
 		
-		return $this->wsdlUrl = 'https://gsxws' . $api_mode . '.apple.com/gsx-ws/services/' . $this->gsxDetails['regionCode'] . '/asp?wsdl';
+		if ( $this->gsxDetails['gsxWsdl'] != '' ) {
+			return $this->wsdlUrl = $this->gsxDetails['gsxWsdl'];
+		} else {
+			return $this->wsdlUrl = 'https://gsxws' . $api_mode . '.apple.com/gsx-ws/services/' . $this->gsxDetails['regionCode'] . '/asp?wsdl';
+		}
 	}
 	
 	/**
@@ -562,17 +569,108 @@ class GSX {
 		return $this->output_format ( ( $logout['LogoutResponse']['logoutMessage'] == 'OK' ) ? true : false , $this->gsxDetails['returnFormat'] );
 	}
 	
+	// REPAIR CREATION API SEGMENT
+	
+	/**
+	 *
+	 * Warranty Status
+	 *
+	 * @param mixed 
+	 *
+	 * @return array Return data with warranty information
+	 *
+	 * @since 1.0
+	 *
+	 * @access public
+	 *
+	 */
+	public function warranty_status ( $request_data ) {
+		if ( empty ( $request_data ) || count ( $request_data ) < 1 ) {
+			return $this->error ( __METHOD__ , __LINE__ , 'No search parameters provided' );
+		}
+		
+		if ( !$this->userSessionId ) {
+			$this->authenticate();
+		}
+		
+		// Time to build the basic frame of our lookup request
+		$warranty_array = array (
+			'WarrantyStatusRequest'	=> array (
+				'userSession'			=> array (
+					'userSessionId'			=> $this->userSessionId
+				) ,
+				'unitDetail' => array ( )
+			)
+		);
+		
+		if ( is_array ( $request_data ) ) {
+			foreach ( $request_data as $paramKey => $paramValue ) {
+				if ( array_search ( $paramKey , $this->validWarrantyParams ) ) {
+					$warranty_array['WarrantyStatusRequest']['unitDetails'][$paramKey] = $paramValue;
+				}
+			}
+		} elseif ( preg_match ( $this->_regex ( 'serialNumber' ) , $request_data ) ) { 
+			// We're doing serial number matching
+			$warranty_array['WarrantyStatusRequest']['unitDetail']['serialNumber'] = $request_data;
+		}
+		
+		try {
+			$warranty_lookup = $this->soapClient->WarrantyStatus ( $warranty_array );
+		} catch ( SoapFault $fault ) {
+			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
+		}
+		
+		$warranty_lookup = $this->obj_to_arr ( $warranty_lookup );
+		
+		$warranty_lookup['WarrantyStatusResponse']['warrantyDetailInfo']['manualURL'] = $this->locate_service_manual ( $warranty_lookup['WarrantyStatusResponse']['warrantyDetailInfo']['productDescription'] );
+		
+		return $warranty_lookup['WarrantyStatusResponse']['warrantyDetailInfo'];
+	}
+	
+	public function product_model ( $serialNumber ) {
+		if ( empty ( $serialNumber ) ) {
+			return $this->error ( __METHOD__ , __LINE__ , 'No serial number provided' );
+		}
+		
+		if ( !$this->userSessionId ) {
+			$this->authenticate();
+		}
+		
+		$product_array = array (
+			'FetchProductModelRequest' => array (
+				'userSession'				=> array (
+					'userSessionId'				=> $this->userSessionId
+				) ,
+				'productModelRequest'		=> array (
+					'serialNumber'				=> $serialNumber
+				)
+			)
+		);
+		
+		try {
+			$product_request = $this->soapClient->FetchProductModel ( $product_array );
+		} catch ( SoapFault $fault ) {
+			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
+		}
+		
+		$product_lookup = $this->obj_to_arr ( $warranty_request );
+		
+		return $this->output_format ( $product_lookup['FetchProductModelResponse']['productModelResponse'] , $this->gsxDetails['returnFormat'] );
+	}
+	
 	// MISC FUNCTIONS
 	
-	private function output_format ( $string , $format = 'php' ) {
+	private function output_format ( $output , $format = 'php' ) {
 		switch ( $format ) {
 			case 'php' :
+			
+				return $output;
 			
 			break;
 			
 			case 'json' :
 			
-				return json_encode ( $string );
+				return json_encode ( $output );
 			
 			break;
 			
