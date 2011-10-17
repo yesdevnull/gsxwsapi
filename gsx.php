@@ -1,7 +1,5 @@
 <?php
 
-error_reporting ( -1 );
-
 /**
  * 
  * GSX Web Services API PHP Class
@@ -355,8 +353,8 @@ class GSX {
 		$this->gsxDetails['userTimeZone'] = ( empty ( $_gsxDetailsArray['userTimeZone'] ) ) ? 'PST' : $_gsxDetailsArray['userTimeZone'];
 		
 		$this->gsxDetails['returnFormat'] = $_gsxDetailsArray['returnFormat'];
-		echo $_gsxDetailsArray['wsdl'];
-		$this->gsxDetails['gsxWsdl'] = $_gsxDetailsArray['wsdl'];
+		// echo $_gsxDetailsArray['wsdl'];
+		$this->gsxDetails['gsxWsdl'] = ( empty ( $_gsxDetailsArray['wsdl'] ) ) ? false : $_gsxDetailsArray['wsdl'];
 		
 		$this->authenticate();
 	}
@@ -449,13 +447,14 @@ class GSX {
 	 * @access protected
 	 *
 	 */
+	 #https://gsxws2.apple.com/wsdl/apacAsp/gsx-apacAsp.wsdl
 	protected function assign_wsdl ( ) {
 		$api_mode = ( $this->gsxDetails['apiMode'] == 'production' ) ? '' : $this->gsxDetails['regionCode'];
 		
 		if ( $this->gsxDetails['gsxWsdl'] != '' ) {
 			return $this->wsdlUrl = $this->gsxDetails['gsxWsdl'];
 		} else {
-			return $this->wsdlUrl = 'https://gsxws' . $api_mode . '.apple.com/gsx-ws/services/' . $this->gsxDetails['regionCode'] . '/asp?wsdl';
+			return $this->wsdlUrl = 'https://gsxws2.apple.com/wsdl/' . $this->gsxDetails['regionCode'] . 'Asp/gsx-' . $this->gsxDetails['regionCode'] . 'Asp.wsdl';
 		}
 	}
 	
@@ -525,6 +524,8 @@ class GSX {
 			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
 		}
 		
+		var_dump($authentication);
+		
 		$authentication = $this->obj_to_arr ( $authentication );
 		
 		return $this->userSessionId = $authentication['AuthenticateResponse']['userSessionId'];
@@ -570,6 +571,57 @@ class GSX {
 	}
 	
 	// REPAIR CREATION API SEGMENT
+	
+	public function lookup ( $serial , $lookupType , $returnFormat = 'php' ) {
+		if ( $this->gsxDetails['returnFormat'] != $returnFormat ) {
+			$this->gsxDetails['returnFormat'] = $returnFormat;
+		}
+		
+		if ( !preg_match ( $this->_regex ( 'serialNumber' ) , $serial ) ) {
+			return $this->error ( __METHOD__ , __LINE__ , 'Serial number is invalid.' , $this->gsxDetails['returnFormat'] );
+		}
+		
+		switch ( $lookupType ) {
+			case 'model' :
+				$clientLookup = array ( 'FetchProductModel' );
+				
+				$requestData = array (
+					'FetchProductModelRequest'	=> array (
+						'userSession'	=> array (
+							'userSessionId'	=> $this->userSessionId
+						) ,
+						'productModelRequest'	=> array (
+							'serialNumber'	=> $serial
+						)
+					)
+				);
+				
+				$modelData = $this->request ( $requestData , $clientLookup );
+				
+				return $modelData;
+				
+			break;
+		}
+	}
+	
+	private function request ( $requestData , $clientLookup ) {
+		if ( !$this->userSessionId ) {
+			$this->authenticate();
+		}
+		
+		if ( !$requestData || !is_array ( $requestData ) ) {
+			$this->error ( __METHOD__ , __LINE__ , $this->gsxDetails['returnFormat'] );
+		}
+		
+		try {
+			// $SOAPRequest = $this->soapClient->$clientLookup[0] ( $requestData );
+			$SOAPRequest = $this->soapClient->FetchProductModel ( $requestData );
+		} catch ( SoapFault $f ) {
+			$this->soap_error ( $f->faultcode , $f->faultstring );
+		}
+		
+		return $this->obj_to_arr ( $SOAPRequest );
+	}
 	
 	/**
 	 *
@@ -656,6 +708,110 @@ class GSX {
 		$product_lookup = $this->obj_to_arr ( $warranty_request );
 		
 		return $this->output_format ( $product_lookup['FetchProductModelResponse']['productModelResponse'] , $this->gsxDetails['returnFormat'] );
+	}
+	
+	// LOOKUP API SEGMENT
+	
+	/**
+	 *
+	 * Part Lookup
+	 *
+	 * At least one parameter is required, otherwise the function will fail.
+	 *
+	 * $parts = array (
+	 * 		'eeeCode'			=> 'D4N',
+	 *		'partNumber'		=> '661-3434',
+	 *		'partDescription'	=> 'Fan, Left',
+	 *		'productName'		=> 'MacBook Air (Late 2010)',
+	 *		'serialNumber'		=> 'SERIAL1234'
+	 * );
+	 *
+	 * @param mixed If a string containg a eeeCode/partNumber/serialNumber is provided, we'll
+	 * look straight away, otherwise it's a more specific search.  This hooks into
+	 * $this->obtain_part_img().
+	 *
+	 * @return array An array containing all the results for the part search.
+	 *
+	 * @since 1.0
+	 *
+	 * @see $this->obtain_part_img();
+	 *
+	 * @access public
+	 *
+	 */
+	public function part_lookup ( $parts_or_serial = false ) {
+		if ( empty ( $parts_or_serial ) || count ( $parts_or_serial ) < 1 ) {
+			return $this->error ( __METHOD__ , __LINE__ , 'No search parameters have been provided' );
+		}
+		
+		// Do we have a session ID?  If we don't, go get one.
+		if ( !$this->userSessionId ) {
+			$this->authenticate();
+		}
+		
+		// Populate the array with the outline of the lookup request.
+		$parts_array = array (
+			'PartsLookupRequest' => array (
+				'userSession' 		=> array (
+					'userSessionId'		=> $this->userSessionId
+				) ,
+				'lookupRequestData' => array ( )
+			)
+		);
+		
+		// Here we do a bit of checking to see if someone is doing a quick serial # search or a full-blown
+		// multiple value search.
+		if ( is_array ( $parts_or_serial ) ) {
+			// Someone gave us an array
+			foreach ( $parts_or_serial as $partSearch => $searchValue ) {
+				if ( !array_search ( $partSearch , $this->validPartSearch ) ) {
+					unset ( $partSearch , $searchValue );
+				} else {
+					$parts_array['PartsLookupRequest']['lookupRequestData'][$partSearch] = $searchValue;
+				}
+			}	
+		} elseif ( preg_match ( $this->_regex ( 'serialNumber' ) , $parts_or_serial ) ) {
+			// We're doing serial number matching
+			$parts_array['PartsLookupRequest']['lookupRequestData']['serialNumber'] = $parts_or_serial;
+		} elseif ( preg_match ( $this->_regex ( 'partNumber' ) , $parts_or_serial ) ) {
+			// We're doing part number matching
+			$parts_array['PartsLookupRequest']['lookupRequestData']['partNumber'] = $parts_or_serial;
+		} elseif ( preg_match ( $this->_regex ( 'eeeCode' ) , $parts_or_serial ) ) {
+			// We're doing eee/eeee code matching
+			$parts_array['PartsLookupRequest']['lookupRequestData']['eeeCode'] = $parts_or_serial;
+		} else {
+			// Throw an error, some goose is providing bad parameters.  Or they've stuffed up the function completely.
+			return $this->error ( __METHOD__ , __LINE__ , 'No valid search parameters provided' );
+		}		
+		
+		try {
+			$parts_lookup = $this->soapClient->PartsLookup ( $parts_array );
+		} catch ( SoapFault $fault ) {
+			$this->soap_error ( $fault->faultcode , $fault->faultstring );
+		}
+		
+		var_dump($parts_lookup);
+		
+		$parts_lookup = $this->obj_to_arr ( $parts_lookup );
+		
+		$parts = $parts_lookup['PartsLookupResponse']['parts'];
+		
+		// Time to sort through parts for valid images and send them to $this->obtain_part_image();
+		if ( count ( $parts) > 9 ) {
+			for ( $i = 0 ; $i <= count ( $parts ) ; $i++ ) {
+				// I want to be rather selective about which parts will have their images loaded up.
+				// Many accessories do not have images - this can waste some time.
+				// This is causing a NOTICE to be thrown when doing doing a search using 
+				// a serial number - no idea how to fix as of yet :(
+				if ( preg_match ( '/^(661|922)/' , $parts[$i]['partNumber'] ) ) {
+					$parts[$i]['imageUri'] = $this->obtain_part_img ( $parts[$i]['partNumber'] );
+				}
+			}
+		} elseif ( count( $parts ) == 9 ) {
+			$parts['imageUri'] = $this->obtain_part_img ( $parts['partNumber'] );
+		} // Can I leave this with no end else statement?
+		
+		return $parts;
 	}
 	
 	// MISC FUNCTIONS
