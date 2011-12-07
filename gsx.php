@@ -447,7 +447,6 @@ class GSX {
 	 * @access protected
 	 *
 	 */
-	 #https://gsxws2.apple.com/wsdl/apacAsp/gsx-apacAsp.wsdl
 	protected function assign_wsdl ( ) {
 		$api_mode = ( $this->gsxDetails['apiMode'] == 'production' ) ? '' : $this->gsxDetails['regionCode'];
 		
@@ -478,8 +477,13 @@ class GSX {
 			$this->assign_wsdl();
 		}
 		
+		// Set the timeout to 10 seconds.
+		$connectionOptions = array (
+			'connection_timeout' => '10' ,
+		);
+		
 		try {
-			$this->soapClient = new SoapClient ( $this->wsdlUrl );
+			$this->soapClient = new SoapClient ( $this->wsdlUrl , $connectionOptions );
 		} catch ( SoapFault $fault ) {
 			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
 		}
@@ -524,9 +528,7 @@ class GSX {
 			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
 		}
 		
-		var_dump($authentication);
-		
-		$authentication = $this->obj_to_arr ( $authentication );
+		$authentication = $this->_objToArr ( $authentication );
 		
 		return $this->userSessionId = $authentication['AuthenticateResponse']['userSessionId'];
 	}
@@ -565,62 +567,93 @@ class GSX {
 			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
 		}
 		
-		$logout = $this->obj_to_arr ( $logout );
+		$logout = $this->_objToArr ( $logout );
 		
 		return $this->output_format ( ( $logout['LogoutResponse']['logoutMessage'] == 'OK' ) ? true : false , $this->gsxDetails['returnFormat'] );
 	}
 	
 	// REPAIR CREATION API SEGMENT
 	
-	public function lookup ( $serial , $lookupType , $returnFormat = 'php' ) {
-		if ( $this->gsxDetails['returnFormat'] != $returnFormat ) {
-			$this->gsxDetails['returnFormat'] = $returnFormat;
-		}
-		
+	public function lookup ( $serial , $lookupType , $returnFormat = false ) {
 		if ( !preg_match ( $this->_regex ( 'serialNumber' ) , $serial ) ) {
 			return $this->error ( __METHOD__ , __LINE__ , 'Serial number is invalid.' , $this->gsxDetails['returnFormat'] );
 		}
 		
 		switch ( $lookupType ) {
 			case 'model' :
-				$clientLookup = array ( 'FetchProductModel' );
-				
-				$requestData = array (
-					'FetchProductModelRequest'	=> array (
-						'userSession'	=> array (
-							'userSessionId'	=> $this->userSessionId
-						) ,
-						'productModelRequest'	=> array (
-							'serialNumber'	=> $serial
-						)
-					)
+				$clientLookup = 'FetchProductModel';
+				$requestName = 'FetchProductModelRequest';
+				$wrapperName = 'productModelRequest';
+				$details = array (
+					'serialNumber' => $serial
 				);
+				
+				$requestData = $this->_requestBuilder ( $requestName , $wrapperName , $details );
 				
 				$modelData = $this->request ( $requestData , $clientLookup );
 				
-				return $modelData;
+				return $this->outputFormat ( $modelData , $returnFormat );
+				
+			break;
+			
+			default :
+			case 'warranty' :
+				$clientLookup = 'WarrantyStatus';
+				$requestName = 'WarrantyStatusRequest';
+				$wrapperName = 'unitDetail';
+				$details = array (
+					'serialNumber' => $serial
+				);
+				
+				$requestData = $this->_requestBuilder ( $requestName , $wrapperName , $details );
+				
+				$warrantyDetails = $this->request ( $requestData , $clientLookup );
+				
+				return $this->outputFormat ( $warrantyDetails , $returnFormat );
 				
 			break;
 		}
 	}
-	
+		
+	/**
+	 *
+	 * Request
+	 *
+	 * Performs a request after having receieved valid data from $this->lookup();
+	 *
+	 * @param array The finalised array built by $this->_requestBuilder();
+	 *
+	 * @param string The name of the WSDL function we call
+	 *
+	 * @since 1.0
+	 *
+	 * @see $this->lookup();
+	 *
+	 * @see $this->_requestBuilder();
+	 *
+	 * @access private
+	 *
+	 */
 	private function request ( $requestData , $clientLookup ) {
 		if ( !$this->userSessionId ) {
 			$this->authenticate();
 		}
 		
 		if ( !$requestData || !is_array ( $requestData ) ) {
-			$this->error ( __METHOD__ , __LINE__ , $this->gsxDetails['returnFormat'] );
+			$this->error ( __METHOD__ , __LINE__ , 'Invalid data passed' . $requestData );
+		}
+		
+		if ( !$clientLookup || !is_string ( $clientLookup ) ) {
+			$this->error ( __METHOD__ , __LINE__ , 'Invalid data passed: ' . $clientLookup );
 		}
 		
 		try {
-			// $SOAPRequest = $this->soapClient->$clientLookup[0] ( $requestData );
-			$SOAPRequest = $this->soapClient->FetchProductModel ( $requestData );
+			$SOAPRequest = $this->soapClient->$clientLookup ( $requestData );
 		} catch ( SoapFault $f ) {
-			$this->soap_error ( $f->faultcode , $f->faultstring );
+			return $this->soap_error ( $f->faultcode , $f->faultstring );
 		}
 		
-		return $this->obj_to_arr ( $SOAPRequest );
+		return $this->_objToArr ( $SOAPRequest );
 	}
 	
 	/**
@@ -814,26 +847,46 @@ class GSX {
 		return $parts;
 	}
 	
-	// MISC FUNCTIONS
-	
-	private function output_format ( $output , $format = 'php' ) {
-		switch ( $format ) {
-			case 'php' :
-			
-				return $output;
-			
-			break;
-			
-			case 'json' :
-			
-				return json_encode ( $output );
-			
-			break;
-			
-			case 'xml' :
-			
-			break;
+	// HELPER FUNCTIONS
+	private function outputFormat ( $output , $format = false ) {
+		if ( !$format ) {
+			$format = $this->gsxDetails['returnFormat'];
 		}
+		
+		return ( $format == 'json' ) ? json_encode ( $output ) : $output;
+	}
+	
+	/**
+	 *
+	 * Request Builder
+	 *
+	 * To save me time in having to write sometimes quite large arrays I
+	 * wrote this class to build the arrays for me.
+	 *
+	 * @param string The name of the request according to GSX
+	 *
+	 * @param string The name of the array all detailed request data should be in
+	 *
+	 * @param array All request data
+	 *
+	 * @return array Built request array
+	 *
+	 * @since 1.0
+	 *
+	 * @access private
+	 *
+	 */
+	private function _requestBuilder ( $requestName , $wrapperName , $details ) {
+		$requestArray = array (
+			"$requestName" => array (
+				'userSession' => array (
+					'userSessionId' => $this->userSessionId
+				) ,
+				"$wrapperName" => $details
+			)
+		);
+		
+		return $requestArray;
 	}
 	
 	/**
@@ -845,12 +898,12 @@ class GSX {
 	 *
 	 * @param object The object in question.
 	 *
-	 * @return mixed Array/Object that contains data that has been converted from an object to an array.
+	 * @return array Associative array that contains data that has been converted from an object to an array.
 	 *
-	 * @access public
+	 * @access private
 	 *
 	 */
-	public static function obj_to_arr ( $object ) {
+	private static function _objToArr ( $object ) {
 		if ( is_object ( $object ) ) {
 			$object = get_object_vars ( $object );
 		}
@@ -859,11 +912,11 @@ class GSX {
 	}
 	
 	protected function error ( $method , $line , $message ) {
-		return 'Function ' . $method . ' (Line: ' . $line . ') returned the error: ' . $message;
+		return $this->outputFormat ( 'Function ' . $method . ' (Line: ' . $line . ') returned the error: ' . $message );
 	}
 	
 	protected function soap_error ( $code , $string ) {
-		return 'SOAP Error: ' . $string . ' (Code: ' . $code . ')';
+		return $this->outputFormat ( 'SOAP Error: ' . $string . ' (Code: ' . $code . ')' );
 	}
 	
 }

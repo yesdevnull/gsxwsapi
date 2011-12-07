@@ -1,5 +1,11 @@
-GSX Web Services API
+GSX Web Services API for PHP
 A PHP Class by Dan "theblahman" Barrett
 
 Web: http://theblahman.net
 Email: gsx@theblahman.net
+
+
+--- REQUIRES ---
+- PHP 5.3 >
+- SOAP module for PHP
+- JSON module for PHP
