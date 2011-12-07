@@ -240,7 +240,8 @@ class GSX {
 		'languageCode'		=> 'en' ,
 		'userTimeZone'		=> 'PDT' ,
 		'returnFormat'		=> 'php' ,
-		'gsxWsdl'				=> ''
+		'gsxWsdl'			=> '' ,
+		'gsx2'				=> false ,
 	);
 	
 	/**
@@ -356,6 +357,8 @@ class GSX {
 		// echo $_gsxDetailsArray['wsdl'];
 		$this->gsxDetails['gsxWsdl'] = ( empty ( $_gsxDetailsArray['wsdl'] ) ) ? false : $_gsxDetailsArray['wsdl'];
 		
+		$this->gsxDetails['gsx2'] = ( $_gsxDetailsArray['gsx2'] ) ? true : false;
+		
 		$this->authenticate();
 	}
 	
@@ -453,7 +456,13 @@ class GSX {
 		if ( $this->gsxDetails['gsxWsdl'] != '' ) {
 			return $this->wsdlUrl = $this->gsxDetails['gsxWsdl'];
 		} else {
-			return $this->wsdlUrl = 'https://gsxws2.apple.com/wsdl/' . $this->gsxDetails['regionCode'] . 'Asp/gsx-' . $this->gsxDetails['regionCode'] . 'Asp.wsdl';
+			if ( $this->gsxDetails['gsx2'] ) {
+				$this->wsdlUrl = 'https://gsxws2.apple.com/wsdl/' . $this->gsxDetails['regionCode'] . 'Asp/gsx-' . $this->gsxDetails['regionCode'] . 'Asp.wsdl';
+			} else {
+				$this->wsdlUrl = 'https://gsxws' . $api_mode . '.apple.com/gsx-ws/services/' . $this->gsxDetails['regionCode'] . '/asp?wsdl';
+			}
+			
+			return $this->wsdlUrl;
 		}
 	}
 	
