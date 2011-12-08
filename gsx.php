@@ -385,60 +385,6 @@ class GSX {
 	
 	/**
 	 *
-	 * Regex
-	 *
-	 * Using a valid regex token, we can obtain a certain chunk of 
-	 * regex, that way we can recycle and easily change regex
-	 * as GSX's API changes
-	 *
-	 * @param string Name of the regex pattern we want to apply and retrieve
-	 *
-	 * @return string The appropriate regex according to the string supplied in the param
-	 *
-	 * @since 1.0
-	 *
-	 * @access private
-	 *
-	 */
-	private function _regex ( $pattern ) {
-		switch ( $pattern ) {
-			case 'dispatchId'	:
-			case 'gsxId'		:
-				return '/^[G]{1}[0-9]{9}$/ ';
-			break;
-			
-			case 'serialNumber' :
-				return '/^[A-Z0-9]{11,12}$/';
-			break;
-			
-			case 'diagnosticEventNumber' :
-				return '/^[0-9]{18,22}$/';
-			break;
-			
-			case 'repairConfirmationNumber' :
-				return '/^[0-9]{12}$/';
-			break;
-			
-			case 'shipToAccountNumber' :
-				return '/^[0-9]{10}$/';
-			break;
-			
-			case 'partNumber' :
-				return '/^([A-Z]{2})?[0-9]{3}\-[0-9]{4}$/';
-			break;
-			
-			case 'eeeCode' :
-				return '/^[0-9A-Z]{3}([0-9A-Z]{1})?$/';
-			break;
-			
-			case 'email' :
-				return '/^(.+)@(.+)$/i';
-			break;
-		}
-	}
-	
-	/**
-	 *
 	 * Assign WSDL
 	 *
 	 * Checks to see if it should use GSX1 or GSX2 api before returning the 
@@ -549,7 +495,8 @@ class GSX {
 	 *
 	 * Lookup
 	 *
-	 * Lookup either the model identifier or warranty information for a given unit
+	 * Lookup either the model identifier or warranty information for a given unit.
+	 * * If you leave lookup type blank, it defaults to warranty lookup.
 	 *
 	 * @param string The serial number of the Apple product
 	 *
@@ -582,14 +529,14 @@ class GSX {
 				
 				$modelData = $this->request ( $requestData , $clientLookup );
 				
-				return $this->outputFormat ( $modelData , $returnFormat );
+				return $this->outputFormat ( $modelData['FetchProductModelResponse']['productModelResponse'] , $returnFormat );
 				
 			break;
 			
 			default :
 			case 'warranty' :
 				$clientLookup = 'WarrantyStatus';
-				$requestName = 'WarrantyStatusRequest';
+				$requestName = $clientLookup . 'Request';
 				$wrapperName = 'unitDetail';
 				$details = array (
 					'serialNumber' => $serial
@@ -599,10 +546,38 @@ class GSX {
 				
 				$warrantyDetails = $this->request ( $requestData , $clientLookup );
 				
-				return $this->outputFormat ( $warrantyDetails , $returnFormat );
+				return $this->outputFormat ( $warrantyDetails['WarrantyStatusResponse']['warrantyDetailInfo'] , $returnFormat );
 				
 			break;
 		}
+	}
+	
+	
+	public function part ( $params , $returnFormat = false ) {
+		if ( !is_array ( $params ) ) {
+			if ( preg_match ( $this->_regex ( 'eeeCode' ) , $params ) ) {
+				$finalParams['eeeCode'] = $params;
+			} elseif ( preg_match ( $this->_regex ( 'partNumber' ) , $params ) ) {
+				$finalParams['partNumber'] = $params;
+			} elseif ( preg_match ( $this->_regex ( 'serialNumber' ) , $params ) ) {
+				$finalParams['serialNumber'] = $params;
+			} elseif ( preg_match ( $this->_regex ( 'partDescription' ) , $params ) ) {
+				$finalParams['partDescription'] = $params;
+			}
+		} else {
+			$finalParams = $params;
+		}
+		
+		$clientLookup = 'PartsLookup';
+		$requestName = $clientLookup . 'Request';
+		$wrapperName = 'lookupRequestData';
+		$details = $finalParams;
+		
+		$requestData = $this->_requestBuilder ( $requestName , $wrapperName , $details );
+		
+		$partsLookup = $this->request ( $requestData , $clientLookup );
+		
+		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
 	}
 	
 	public function obtainCompTIA ( ) {
@@ -678,6 +653,65 @@ class GSX {
 		}
 		
 		return ( $format == 'json' ) ? json_encode ( $output ) : $output;
+	}
+		
+	/**
+	 *
+	 * Regex
+	 *
+	 * Using a valid regex token, we can obtain a certain chunk of 
+	 * regex, that way we can recycle and easily change regex
+	 * as GSX's API changes
+	 *
+	 * @param string Name of the regex pattern we want to apply and retrieve
+	 *
+	 * @return string The appropriate regex according to the string supplied in the param
+	 *
+	 * @since 1.0
+	 *
+	 * @access private
+	 *
+	 */
+	private function _regex ( $pattern ) {
+		switch ( $pattern ) {
+			case 'dispatchId'	:
+			case 'gsxId'		:
+				return '/^[G]{1}[0-9]{9}$/ ';
+			break;
+			
+			case 'serialNumber' :
+				return '/^[A-Z0-9]{11,12}$/';
+			break;
+			
+			case 'diagnosticEventNumber' :
+				return '/^[0-9]{18,22}$/';
+			break;
+			
+			case 'repairConfirmationNumber' :
+				return '/^[0-9]{12}$/';
+			break;
+			
+			case 'shipToAccountNumber' :
+				return '/^[0-9]{10}$/';
+			break;
+			
+			case 'partNumber' :
+				return '/^([A-Z]{1,2})?[0-9]{3}\-[0-9]{4}$/';
+			break;
+			
+			case 'eeeCode' :
+				return '/^[0-9A-Z]{3}([0-9A-Z]{1})?$/';
+			break;
+			
+			case 'partDescription' :
+				return '/^[a-z]{5,15}$/i';
+			break;
+			
+			// Lazy check...
+			case 'email' :
+				return '/^(.+)@(.+)$/i';
+			break;
+		}
 	}
 	
 	/**
