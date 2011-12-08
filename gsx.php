@@ -552,7 +552,34 @@ class GSX {
 		}
 	}
 	
-	
+	/**
+	 *
+	 * Part Lookup
+	 *
+	 * Obtain information for part(s) using several parameters:
+	 *   - EEE Code
+	 *   - Part Number
+	 *   - Serial Number (of machine, not part serial #)
+	 *   - Part Description (keyboard, for example)
+	 *
+	 * Alternatively, you can make an array with more information populated
+	 *   'eeeCode' => 'D4N' ,
+	 *   'partDescription' => 'logic'
+	 *
+	 * The above code will search the parts database for all parts that match
+	 * both the EEE Code of 'D4N' and Part Description 'logic'.
+	 *
+	 * @param mixed Array or string of parameters
+	 *
+	 * @param string 'json' for json output, or leave blank for php output
+	 *
+	 * @return array Part(s) details
+	 *
+	 * @since 1.0
+	 *
+	 * @access public
+	 *
+	 */
 	public function part ( $params , $returnFormat = false ) {
 		if ( !is_array ( $params ) ) {
 			if ( preg_match ( $this->_regex ( 'eeeCode' ) , $params ) ) {
