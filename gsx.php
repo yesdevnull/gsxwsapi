@@ -304,8 +304,6 @@ class GSX {
 	 *
 	 * @param array GSX Details array which contains authentication and regional information
 	 *
-	 * @since 1.0
-	 *
 	 * @access public
 	 *
 	 */
@@ -372,8 +370,6 @@ class GSX {
 	 *
 	 * @todo MOAR garbage collection.
 	 *
-	 * @since 1.0
-	 *
 	 * @access public
 	 *
 	 */
@@ -393,8 +389,6 @@ class GSX {
 	 * @param null
 	 *
 	 * @return string The WSDL URI for GSX.
-	 *
-	 * @since 1.0
 	 *
 	 * @access protected
 	 *
@@ -424,8 +418,6 @@ class GSX {
 	 * @param null
 	 *
 	 * @return object soapClient object.
-	 *
-	 * @since 1.0
 	 *
 	 * @access private
 	 *
@@ -459,8 +451,6 @@ class GSX {
 	 * @param null
 	 *
 	 * @return string Returns the userSessionId as created by GSX.
-	 *
-	 * @since 1.0
 	 *
 	 * @access public
 	 *
@@ -505,8 +495,6 @@ class GSX {
 	 * @param string Format to return data (optional)
 	 *
 	 * @return mixed Returns array of data if successful or string on error
-	 *
-	 * @since 1.0
 	 *
 	 * @access public
 	 *
@@ -575,8 +563,6 @@ class GSX {
 	 *
 	 * @return array Part(s) details
 	 *
-	 * @since 1.0
-	 *
 	 * @access public
 	 *
 	 */
@@ -607,11 +593,28 @@ class GSX {
 		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
 	}
 	
+	/**
+	 *
+	 * Obtain CompTIA
+	 *
+	 * This function obtains the codes and descriptions
+	 * for the CompTIA lists used in GSX.
+	 *
+	 * * NOTE *
+	 * This function appears to be partially broken in the current GSX API,
+	 * Only codes are returned, no descriptions.
+	 *
+	 * @return array List of CompTIA codes and descriptions
+	 *
+	 * @access public
+	 *
+	 */
 	public function obtainCompTIA ( ) {
 		if ( !$this->userSessionId ) {
 			$this->authenticate();
 		}
 		
+		// Manually build the request...
 		$compTIARequest = array (
 			'ComptiaCodeLookupRequest' => array (
 				'userSession' => array (
@@ -631,7 +634,9 @@ class GSX {
 		
 		return $compTIAAnswer;
 	}
-		
+	
+	// HELPER FUNCTIONS
+	
 	/**
 	 *
 	 * Request
@@ -641,8 +646,6 @@ class GSX {
 	 * @param array The finalised array built by $this->_requestBuilder();
 	 *
 	 * @param string The name of the WSDL function we call
-	 *
-	 * @since 1.0
 	 *
 	 * @see $this->lookup();
 	 *
@@ -672,8 +675,38 @@ class GSX {
 		
 		return $this->_objToArr ( $SOAPRequest );
 	}
+		
+	/**
+	 *
+	 * Request Builder
+	 *
+	 * To save me time in having to write sometimes quite large arrays I
+	 * wrote this class to build the arrays for me.
+	 *
+	 * @param string The name of the request according to GSX
+	 *
+	 * @param string The name of the array all detailed request data should be in
+	 *
+	 * @param array All request data
+	 *
+	 * @return array Built request array
+	 *
+	 * @access private
+	 *
+	 */
+	private function _requestBuilder ( $requestName , $wrapperName , $details ) {
+		$requestArray = array (
+			"$requestName" => array (
+				'userSession' => array (
+					'userSessionId' => $this->userSessionId
+				) ,
+				"$wrapperName" => $details
+			)
+		);
+		
+		return $requestArray;
+	}
 	
-	// HELPER FUNCTIONS
 	private function outputFormat ( $output , $format = false ) {
 		if ( !$format ) {
 			$format = $this->gsxDetails['returnFormat'];
@@ -693,8 +726,6 @@ class GSX {
 	 * @param string Name of the regex pattern we want to apply and retrieve
 	 *
 	 * @return string The appropriate regex according to the string supplied in the param
-	 *
-	 * @since 1.0
 	 *
 	 * @access private
 	 *
@@ -740,40 +771,7 @@ class GSX {
 			break;
 		}
 	}
-	
-	/**
-	 *
-	 * Request Builder
-	 *
-	 * To save me time in having to write sometimes quite large arrays I
-	 * wrote this class to build the arrays for me.
-	 *
-	 * @param string The name of the request according to GSX
-	 *
-	 * @param string The name of the array all detailed request data should be in
-	 *
-	 * @param array All request data
-	 *
-	 * @return array Built request array
-	 *
-	 * @since 1.0
-	 *
-	 * @access private
-	 *
-	 */
-	private function _requestBuilder ( $requestName , $wrapperName , $details ) {
-		$requestArray = array (
-			"$requestName" => array (
-				'userSession' => array (
-					'userSessionId' => $this->userSessionId
-				) ,
-				"$wrapperName" => $details
-			)
-		);
-		
-		return $requestArray;
-	}
-	
+
 	/**
 	 *
 	 * Object to Array
