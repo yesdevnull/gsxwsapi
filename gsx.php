@@ -621,7 +621,7 @@ class GSX {
 		);
 		
 		try {
-			$compTIAAnswer = $this->soapClient->ComptiaCodeLookup ( $compTIARequest );
+			$compTIAAnswer = $this->soapClient->CompTIACodes ( $compTIARequest );
 		} catch ( SoapFault $fault ) {
 			echo $fault->faultstring;
 			return $this->soap_error ( $fault->faultcode , $fault->faultstring );
@@ -629,7 +629,7 @@ class GSX {
 		
 		$compTIAAnswer = $this->_objToArr ( $compTIAAnswer );
 		
-		var_dump($compTIAAnswer);
+		return $compTIAAnswer;
 	}
 		
 	/**
