@@ -7,6 +7,6 @@ Web: http://theblahman.net
 Email: gsx@theblahman.net
 
 ## REQUIRES
-* PHP 5.3 >
+* PHP 5.3 and greater
 * SOAP module for PHP
 * JSON module for PHP
