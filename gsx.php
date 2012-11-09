@@ -514,7 +514,7 @@ class GSX {
 				return $this->outputFormat ( $modelData['FetchProductModelResponse']['productModelResponse'] , $errorMessage , $returnFormat );
 				
 			break;
-			
+						
 			default :
 			case 'warranty' :
 				$clientLookup = 'WarrantyStatus';
@@ -590,6 +590,51 @@ class GSX {
 		$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
 		
 		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $errorMessage , $returnFormat );
+	}
+	
+	public function repairs ( $type , $params , $returnFormat = false ) {
+		switch ( $type ) {
+			case 'lookup' :
+			default :
+				
+				$clientLookup = 'RepairLookup';
+				$requestName = $clientLookup . 'Request';
+				$wrapperName = 'lookupRequestData';
+				$details = $params;
+				
+				$requestData = $this->_requestBuilder ( $requestName , $wrapperName , $details );
+				
+				$repairLookup = $this->request ( $requestData , $clientLookup );
+				
+				//$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				
+				return $this->outputFormat ( $repairLookup , '' , $returnFormat);
+				
+			break;
+			
+			case 'details' :
+			
+				$clientLookup = 'RepairDetails';
+				$requestName = $clientLookup . 'Request';
+				$wrapperName = 'dispatchId';
+				$details = $params;
+				
+				$requestData = $this->_requestBuilder ( $requestName , $wrapperName , $details );
+				
+				$repairLookup = $this->request ( $requestData , $clientLookup );
+				
+				//$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				
+				// print_r($repairLookup);
+				
+				return $this->outputFormat ( $repairLookup['RepairDetailsResponse']['lookupResponseData'] , '' , $returnFormat);
+			
+			break;
+			
+			case 'details-lookup' :
+			
+			break;
+		}
 	}
 	
 	/**
@@ -706,7 +751,7 @@ class GSX {
 		return $requestArray;
 	}
 	
-	private function outputFormat ( $output , $errorMessage , $format = false ) {
+	private function outputFormat ( $output , $errorMessage = null , $format = false ) {
 		if ( !$format ) {
 			$format = $this->gsxDetails['returnFormat'];
 		}
@@ -756,7 +801,7 @@ class GSX {
 		
 		array_walk ( $output , '_softErrorMessage' );
 		
-		return $softErrorMessage = ( isset ( $softError ) ) ? $softError : '';
+		return isset ( $softError ) ? $softError : '';
 	}
 		
 	/**
