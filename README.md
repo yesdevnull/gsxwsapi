@@ -17,6 +17,53 @@ Content Outputs:
 * SOAP module for PHP
 * JSON module for PHP
 
+## USAGE
+
+### INSTANTIATION
+```php
+require_once ( 'gsxwsapi/gsx.php' );
+	
+$details = array (
+	'apiMode'			=> 'production',
+	'regionCode'		=> 'apac',
+	'userId'			=> 'user@example.net',
+	'password'			=> 'professor',
+	'serviceAccountNo'	=> '0000XXXXXX',
+	'languageCode'		=> 'en',
+	'userTimeZone'		=> 'AEST' ,
+	'returnFormat'		=> 'php' ,
+);
+	
+$gsx = new GSX ( $details );
+```
+
+### OBTAIN WARRANTY FROM SERIAL NUMBER
+```php
+$gsx->lookup ( 'SERIALNUM' , 'warranty' );
+```
+
+### LIST PARTS FOR SERIAL
+```php
+$gsx->part ( 'SERIALNUM' );
+```
+
+OR
+
+```php
+$gsx->part ( array ( 'serialNumber' => 'SERIALNUM' , 'partDescription' => 'fan' ) );
+```
+
+### PART DETAILS AND INFO
+```php
+$gsx->part ( '922-9225' );
+```
+
+OR
+
+```php
+$gsx->part ( array ( 'partNumber' => '922-9225' ) );
+```
+
 ## FUTURE PLANS
 
 I hope to provide much nicer output than what is currently present.
