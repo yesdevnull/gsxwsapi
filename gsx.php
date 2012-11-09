@@ -390,7 +390,7 @@ class GSX {
 	 *
 	 */
 	protected function assign_wsdl ( ) {
-		$api_mode = ( $this->gsxDetails['apiMode'] == 'production' ) ? '' : $this->gsxDetails['regionCode'];
+		$api_mode = ( $this->gsxDetails['apiMode'] == 'production' ) ? '' : $this->gsxDetails['apiMode'];
 		
 		if ( $this->gsxDetails['gsxWsdl'] != '' ) {
 			return $this->wsdlUrl = $this->gsxDetails['gsxWsdl'];
@@ -421,7 +421,7 @@ class GSX {
 		
 		// Set the timeout to 10 seconds.
 		$connectionOptions = array (
-			'connection_timeout' => '10' ,
+			'connection_timeout' => '5' ,
 		);
 		
 		try {
@@ -530,6 +530,7 @@ class GSX {
 				
 			break;
 		}
+
 	}
 	
 	/**
@@ -551,7 +552,7 @@ class GSX {
 	 *
 	 * @param mixed Array or string of parameters
 	 *
-	 * @param string 'json' for json output, or leave blank for php output
+	 * @param string 'json' for json output, 'plist' for .plist output, or leave blank for php output
 	 *
 	 * @return array Part(s) details
 	 *
@@ -582,9 +583,9 @@ class GSX {
 		
 		$partsLookup = $this->request ( $requestData , $clientLookup );
 		
-		return $partsLookup;
+		// return $partsLookup;
 		
-		// return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
+		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
 	}
 	
 	/**
@@ -654,7 +655,7 @@ class GSX {
 		}
 		
 		if ( !$requestData || !is_array ( $requestData ) ) {
-			$this->error ( __METHOD__ , __LINE__ , 'Invalid data passed' . $requestData );
+			$this->error ( __METHOD__ , __LINE__ , 'Invalid data passed: ' . $requestData );
 		}
 		
 		if ( !$clientLookup || !is_string ( $clientLookup ) ) {
@@ -706,16 +707,18 @@ class GSX {
 			$format = $this->gsxDetails['returnFormat'];
 		}
 		
+		// print_r($output);
+		
 		$finalReturnArray = array (
 			'ResponseArray' => array (
 				'type'			=> 'output' ,
-				'code'			=> $code ,
-				'responseData'	=> $output['data'],
+				// 'code'			=> $code ,
+				'responseData'	=> $output,
 				'urgentMessage'	=> ''
 			)
 		);
 		
-		return ( $format == 'json' ) ? json_encode ( $output ) : $output;
+		return $this->_formatter ( $finalReturnArray , $format );
 	}
 	
 	private function _formatter ( $output , $format ) {
@@ -726,6 +729,7 @@ class GSX {
 				
 			break;
 			
+			// @TODO: to do...
 			case 'plist' :
 			
 				return null;
@@ -792,7 +796,7 @@ class GSX {
 				return '/^[a-z]{5,15}$/i';
 			break;
 			
-			// Lazy check… I'm not too fused about email checks
+			// Lazy check… I'm not too fussed about email checks
 			case 'email' :
 				return '/^(.+)@(.+)$/i';
 			break;
