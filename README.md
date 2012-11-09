@@ -1,5 +1,5 @@
 # GSX Web Services API
-A PHP Class by Dan "_theblahman_" Barrett
+A PHP Class by Dan "theblahman" Barrett
 
 This class is intended for AASPs only
 
@@ -9,6 +9,7 @@ Email: gsx@theblahman.net
 Content Outputs:
 * PHP
 * JSON
+* .plist
 
 ## REQUIRES
 
@@ -94,8 +95,4 @@ array(1){
 
 Coming soon:
 * Clean display of content along with appropriate return codes
-* .plist output so you don't have to
 * _hopefully_ clean error output
-
-Sometime in the future…
-* REST-ish module
