@@ -241,7 +241,6 @@ class GSX {
 		'userTimeZone'		=> 'PDT' ,
 		'returnFormat'		=> 'php' ,
 		'gsxWsdl'			=> '' ,
-		'gsx2'				=> false ,
 	);
 	
 	/**
@@ -352,11 +351,9 @@ class GSX {
 		$this->gsxDetails['userTimeZone'] = ( empty ( $_gsxDetailsArray['userTimeZone'] ) ) ? 'PST' : $_gsxDetailsArray['userTimeZone'];
 		
 		$this->gsxDetails['returnFormat'] = $_gsxDetailsArray['returnFormat'];
-		// echo $_gsxDetailsArray['wsdl'];
+		
 		$this->gsxDetails['gsxWsdl'] = ( empty ( $_gsxDetailsArray['wsdl'] ) ) ? false : $_gsxDetailsArray['wsdl'];
-		
-		$this->gsxDetails['gsx2'] = ( $_gsxDetailsArray['gsx2'] ) ? true : false;
-		
+				
 		$this->authenticate();
 	}
 	
@@ -383,8 +380,7 @@ class GSX {
 	 *
 	 * Assign WSDL
 	 *
-	 * Checks to see if it should use GSX1 or GSX2 api before returning the 
-	 * applicable WSDL.
+	 * Checks to see if it should use the official GSX WSDL or a custom, user-supplied WSDL link.
 	 *
 	 * @param null
 	 *
@@ -399,11 +395,7 @@ class GSX {
 		if ( $this->gsxDetails['gsxWsdl'] != '' ) {
 			return $this->wsdlUrl = $this->gsxDetails['gsxWsdl'];
 		} else {
-			if ( $this->gsxDetails['gsx2'] ) {
-				$this->wsdlUrl = 'https://gsxws2.apple.com/wsdl/' . $this->gsxDetails['regionCode'] . 'Asp/gsx-' . $this->gsxDetails['regionCode'] . 'Asp.wsdl';
-			} else {
-				$this->wsdlUrl = 'https://gsxws' . $api_mode . '.apple.com/gsx-ws/services/' . $this->gsxDetails['regionCode'] . '/asp?wsdl';
-			}
+			$this->wsdlUrl = 'https://gsxws2' . $api_mode . '.apple.com/wsdl/' . strtolower ( $this->gsxDetails['regionCode'] ) . 'Asp/gsx-' . strtolower ( $this->gsxDetails['regionCode'] ) . 'Asp.wsdl';
 			
 			return $this->wsdlUrl;
 		}
@@ -590,7 +582,9 @@ class GSX {
 		
 		$partsLookup = $this->request ( $requestData , $clientLookup );
 		
-		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
+		return $partsLookup;
+		
+		// return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
 	}
 	
 	/**
@@ -712,7 +706,39 @@ class GSX {
 			$format = $this->gsxDetails['returnFormat'];
 		}
 		
+		$finalReturnArray = array (
+			'ResponseArray' => array (
+				'type'			=> 'output' ,
+				'code'			=> $code ,
+				'responseData'	=> $output['data'],
+				'urgentMessage'	=> ''
+			)
+		);
+		
 		return ( $format == 'json' ) ? json_encode ( $output ) : $output;
+	}
+	
+	private function _formatter ( $output , $format ) {
+		switch ( $format ) {
+			case 'json' :
+				
+				return json_encode ( $output );
+				
+			break;
+			
+			case 'plist' :
+			
+				return null;
+			
+			break;
+			
+			case 'php' :
+			default :
+			
+				return $output;
+			
+			break;
+		}
 	}
 		
 	/**
@@ -749,6 +775,7 @@ class GSX {
 				return '/^[0-9]{12}$/';
 			break;
 			
+			case 'soldToAccountNumber' :
 			case 'shipToAccountNumber' :
 				return '/^[0-9]{10}$/';
 			break;
@@ -765,7 +792,7 @@ class GSX {
 				return '/^[a-z]{5,15}$/i';
 			break;
 			
-			// Lazy check...
+			// Lazy check… I'm not too fused about email checks
 			case 'email' :
 				return '/^(.+)@(.+)$/i';
 			break;
@@ -799,7 +826,10 @@ class GSX {
 	}
 	
 	protected function soap_error ( $code , $string ) {
-		return $this->outputFormat ( 'SOAP Error: ' . $string . ' (Code: ' . $code . ')' );
+		// The API is not very verbose with bad credentials… wrong credentials can throw the "expired session" error.
+		$additionalInfo = ( $code == 'ATH.LOG.20' ) ? ' (You may have provided the wrong login credentials)' : '';
+	
+		return $this->outputFormat ( 'SOAP Error: ' . $string . ' (Code: ' . $code . ')' . $additionalInfo );
 	}
 	
 }
