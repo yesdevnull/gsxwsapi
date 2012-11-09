@@ -509,7 +509,9 @@ class GSX {
 				
 				$modelData = $this->request ( $requestData , $clientLookup );
 				
-				return $this->outputFormat ( $modelData['FetchProductModelResponse']['productModelResponse'] , $returnFormat );
+				$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				
+				return $this->outputFormat ( $modelData['FetchProductModelResponse']['productModelResponse'] , $errorMessage , $returnFormat );
 				
 			break;
 			
@@ -526,7 +528,9 @@ class GSX {
 				
 				$warrantyDetails = $this->request ( $requestData , $clientLookup );
 				
-				return $this->outputFormat ( $warrantyDetails['WarrantyStatusResponse']['warrantyDetailInfo'] , $returnFormat );
+				$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				
+				return $this->outputFormat ( $warrantyDetails['WarrantyStatusResponse']['warrantyDetailInfo'] , $errorMessage , $returnFormat );
 				
 			break;
 		}
@@ -583,9 +587,9 @@ class GSX {
 		
 		$partsLookup = $this->request ( $requestData , $clientLookup );
 		
-		// return $partsLookup;
+		$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
 		
-		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $returnFormat );
+		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $errorMessage , $returnFormat );
 	}
 	
 	/**
@@ -702,19 +706,17 @@ class GSX {
 		return $requestArray;
 	}
 	
-	private function outputFormat ( $output , $format = false ) {
+	private function outputFormat ( $output , $errorMessage , $format = false ) {
 		if ( !$format ) {
 			$format = $this->gsxDetails['returnFormat'];
 		}
-		
-		// print_r($output);
 		
 		$finalReturnArray = array (
 			'ResponseArray' => array (
 				'type'			=> 'output' ,
 				// 'code'			=> $code ,
 				'responseData'	=> $output,
-				'urgentMessage'	=> ''
+				'urgentMessage'	=> $errorMessage
 			)
 		);
 		
@@ -743,6 +745,18 @@ class GSX {
 			
 			break;
 		}
+	}
+	
+	private function _obtainErrorMessage ( $output ) {
+		function _softErrorMessage ( $value , $key ) {
+			if ( isset ( $key ) == 'communicationMessage' ) {
+				$softError = $value;
+			}
+		}
+		
+		array_walk ( $output , '_softErrorMessage' );
+		
+		return $softErrorMessage = ( isset ( $softError ) ) ? $softError : '';
 	}
 		
 	/**
