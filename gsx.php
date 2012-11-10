@@ -528,7 +528,7 @@ class GSX {
 				
 				$warrantyDetails = $this->request ( $requestData , $clientLookup );
 				
-				$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				$errorMessage = $this->_obtainErrorMessage ( $warrantyDetails );
 				
 				return $this->outputFormat ( $warrantyDetails['WarrantyStatusResponse']['warrantyDetailInfo'] , $errorMessage , $returnFormat );
 				
@@ -586,6 +586,8 @@ class GSX {
 		$requestData = $this->_requestBuilder ( $requestName , $wrapperName , $details );
 		
 		$partsLookup = $this->request ( $requestData , $clientLookup );
+		
+		//var_dump($partsLookup);
 		
 		$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
 		
@@ -779,6 +781,14 @@ class GSX {
 			// @TODO: to do...
 			case 'plist' :
 			
+				$plist = '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>';
+
+				$plist .= '</dict>
+</plist>';
+				
 				return null;
 			
 			break;
@@ -844,7 +854,7 @@ class GSX {
 			break;
 			
 			case 'partNumber' :
-				return '/^([A-Z]{1,2})?[0-9]{3}\-[0-9]{4}$/';
+				return '/^([A-Z]{1,2})?(011|076|661|922)\-[0-9]{4}$/';
 			break;
 			
 			case 'eeeCode' :
