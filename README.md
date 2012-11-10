@@ -49,6 +49,12 @@ $gsx->part ( 'SERIALNUM' );
 
 OR
 
+```PHP
+$gsx->part ( array ( 'serialNumber' => 'SERIALNUM' ) );
+```
+
+Or to specify certain parts within a serial number, combine serial number with a part description to get a filtered list:
+
 ```php
 $gsx->part ( array ( 'serialNumber' => 'SERIALNUM' , 'partDescription' => 'fan' ) );
 ```
