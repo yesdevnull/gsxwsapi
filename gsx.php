@@ -394,6 +394,8 @@ class GSX {
 		
 		if ( $this->gsxDetails['gsxWsdl'] != '' ) {
 			return $this->wsdlUrl = $this->gsxDetails['gsxWsdl'];
+		} elseif ( $api_mode == 'it' ) {
+			return $this->wsdlUrl = 'https://gsxwsit.apple.com/wsdl/' . strtolower ( $this->gsxDetails['regionCode'] ) . 'Asp/gsx-' . strtolower ( $this->gsxDetails['regionCode'] ) . 'Asp.wsdl';
 		} else {
 			$this->wsdlUrl = 'https://gsxws2' . $api_mode . '.apple.com/wsdl/' . strtolower ( $this->gsxDetails['regionCode'] ) . 'Asp/gsx-' . strtolower ( $this->gsxDetails['regionCode'] ) . 'Asp.wsdl';
 			
