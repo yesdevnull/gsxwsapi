@@ -509,7 +509,7 @@ class GSX {
 				
 				$modelData = $this->request ( $requestData , $clientLookup );
 				
-				$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				$errorMessage = $this->_obtainErrorMessage ( $modelData );
 				
 				return $this->outputFormat ( $modelData['FetchProductModelResponse']['productModelResponse'] , $errorMessage , $returnFormat );
 				
@@ -596,6 +596,7 @@ class GSX {
 	
 	public function repairs ( $type , $params , $returnFormat = false ) {
 		switch ( $type ) {
+			/*! Repair Lookup */
 			case 'lookup' :
 			default :
 				
@@ -608,12 +609,13 @@ class GSX {
 				
 				$repairLookup = $this->request ( $requestData , $clientLookup );
 				
-				//$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				$errorMessage = $this->_obtainErrorMessage ( $repairLookup );
 				
-				return $this->outputFormat ( $repairLookup , '' , $returnFormat);
+				return $this->outputFormat ( $repairLookup , $errorMessage , $returnFormat);
 				
 			break;
 			
+			/*! Repair Details */
 			case 'details' :
 			
 				$clientLookup = 'RepairDetails';
@@ -625,14 +627,13 @@ class GSX {
 				
 				$repairLookup = $this->request ( $requestData , $clientLookup );
 				
-				//$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+				$errorMessage = $this->_obtainErrorMessage ( $repairLookup );
 				
-				// print_r($repairLookup);
-				
-				return $this->outputFormat ( $repairLookup['RepairDetailsResponse']['lookupResponseData'] , '' , $returnFormat);
+				return $this->outputFormat ( $repairLookup['RepairDetailsResponse']['lookupResponseData'] , $errorMessage , $returnFormat);
 			
 			break;
 			
+			/*! Repair Details Lookup */
 			case 'details-lookup' :
 			
 			break;
