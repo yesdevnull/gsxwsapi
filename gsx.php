@@ -511,7 +511,7 @@ class GSX {
 				
 				$modelData = $this->request ( $requestData , $clientLookup );
 				
-				$errorMessage = $this->_obtainErrorMessage ( $modelData );
+				//$errorMessage = $this->_obtainErrorMessage ( $modelData );
 				
 				return $this->outputFormat ( $modelData['FetchProductModelResponse']['productModelResponse'] , $errorMessage , $returnFormat );
 				
@@ -530,7 +530,7 @@ class GSX {
 				
 				$warrantyDetails = $this->request ( $requestData , $clientLookup );
 				
-				$errorMessage = $this->_obtainErrorMessage ( $warrantyDetails );
+				//$errorMessage = $this->_obtainErrorMessage ( $warrantyDetails );
 				
 				return $this->outputFormat ( $warrantyDetails['WarrantyStatusResponse']['warrantyDetailInfo'] , $errorMessage , $returnFormat );
 				
@@ -591,7 +591,7 @@ class GSX {
 		
 		//var_dump($partsLookup);
 		
-		$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
+		//$errorMessage = $this->_obtainErrorMessage ( $partsLookup );
 		
 		return $this->outputFormat ( $partsLookup['PartsLookupResponse']['parts'] , $errorMessage , $returnFormat );
 	}
@@ -611,7 +611,7 @@ class GSX {
 				
 				$repairLookup = $this->request ( $requestData , $clientLookup );
 				
-				$errorMessage = $this->_obtainErrorMessage ( $repairLookup );
+				//$errorMessage = $this->_obtainErrorMessage ( $repairLookup );
 				
 				return $this->outputFormat ( $repairLookup , $errorMessage , $returnFormat);
 				
@@ -629,7 +629,7 @@ class GSX {
 				
 				$repairLookup = $this->request ( $requestData , $clientLookup );
 				
-				$errorMessage = $this->_obtainErrorMessage ( $repairLookup );
+				//$errorMessage = $this->_obtainErrorMessage ( $repairLookup );
 				
 				return $this->outputFormat ( $repairLookup['RepairDetailsResponse']['lookupResponseData'] , $errorMessage , $returnFormat);
 			
