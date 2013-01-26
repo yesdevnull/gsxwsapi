@@ -857,7 +857,7 @@ class GSX {
 			break;
 			
 			case 'partNumber' :
-				return '/^([A-Z]{1,2})?(011|076|661|922)\-[0-9]{4}$/';
+				return '/^([A-Z]{1,2})?(011|076|661|92(2|3))\-[0-9]{4}$/';
 			break;
 			
 			case 'eeeCode' :
