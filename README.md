@@ -149,3 +149,6 @@ array(1){
 Coming soon:
 * Clean display of content along with appropriate return codes
 * _hopefully_ clean error output
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/yesdevnull/gsxwsapi/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
