@@ -3,8 +3,9 @@ A PHP Class by Dan "theblahman" Barrett
 
 This class is intended for AASPs only
 
+**This project is no longer maintained as I'm no longer a member of an AASP**
+
 Web: http://theblahman.net
-Email: gsx@theblahman.net
 
 Content Outputs:
 * PHP
