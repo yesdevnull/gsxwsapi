@@ -1,4 +1,5 @@
-# GSX Web Services API
+# GSX Web Services API [![Project Status](http://stillmaintained.com/yesdevnull/gsxwsapi.png)](http://stillmaintained.com/yesdevnull/gsxwsapi)
+
 A PHP Class by Dan "theblahman" Barrett
 
 This class is intended for AASPs only
